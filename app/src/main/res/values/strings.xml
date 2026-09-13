@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">sleep analysis</string>
+    <string name="splash_title">sleep analysis</string>
+    <string name="connect_prompt">Connect with your Smart Watch to download sleep data</string>
+    <string name="found_watch">Found Google Fitbit Inspire 3</string>
+    <string name="connect">Connect</string>
+    <string name="exit_app">Exit app</string>
+    <string name="no_data">No data available</string>
+    <string name="analysing">Analyzing data from your smartwatch</string>
+    <string name="playing_title">Sleep analysis</string>
+    <string name="close">Close</string>
+    <string name="ok">OK</string>
+    <string name="previous_month">Previous month</string>
+    <string name="next_month">Next month</string>
+</resources>

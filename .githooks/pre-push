@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Compile-on-push is off by default. Verify after edits via rebuild-app /
+# compile-kotlin. Opt in: RUN_COMPILE_HOOK=1 git push
+set -euo pipefail
+
+if [[ "${RUN_COMPILE_HOOK:-}" != "1" ]]; then
+  exit 0
+fi
+
+ROOT="$(git rev-parse --show-toplevel)"
+echo "pre-push: RUN_COMPILE_HOOK=1 — running compile-kotlin"
+exec bash "$ROOT/.cursor/skills/compile-kotlin/scripts/compile-kotlin.sh"
