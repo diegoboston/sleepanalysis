@@ -13,9 +13,15 @@ object DayAvailability {
         else -> DayVisual.FUTURE
     }
 
-    fun action(day: LocalDate, today: LocalDate, installDay: LocalDate): DayAction {
+    fun action(
+        day: LocalDate,
+        today: LocalDate,
+        installDay: LocalDate,
+        allowToday: Boolean = false,
+    ): DayAction {
         if (day.isAfter(today)) return DayAction.NO_DATA
-        if (day.isAfter(installDay) && !day.isAfter(today)) return DayAction.ANALYZE
+        if (day == today) return if (allowToday) DayAction.ANALYZE else DayAction.NO_DATA
+        if (day.isAfter(installDay) && day.isBefore(today)) return DayAction.ANALYZE
         return DayAction.NO_DATA
     }
 }

@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# Compile debug Kotlin, run JVM unit tests, and assemble the debug APK.
+# Rebuild the app: compile debug Kotlin, run JVM unit tests, assemble debug APK.
+# Exits non-zero unless compile, tests, and APK packaging all succeed.
 set -euo pipefail
 
 ENV_SH="${ANDROID_BUILD_ENV:-$HOME/tmp/android-build/env.sh}"
 if [[ ! -f "$ENV_SH" ]]; then
   echo "rebuild-app: ERROR — missing build env: $ENV_SH" >&2
-  echo "This repo is set up to build on GitHub Actions CI." >&2
+  echo "Install JDK 17 + Android SDK under ~/tmp/android-build and create env.sh first." >&2
+  echo "Do not run ./gradlew without sourcing env.sh (Gradle needs Java 17)." >&2
   exit 1
 fi
 
@@ -26,8 +28,8 @@ fi
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 cd "$ROOT"
 
-echo "rebuild-app: running compileDebugKotlin + testDebugUnitTest + assembleDebug (Java $java_major)"
-gradle :app:compileDebugKotlin :app:testDebugUnitTest :app:assembleDebug "$@"
+echo "rebuild-app: running :app:compileDebugKotlin :app:testDebugUnitTest :app:assembleDebug (Java $java_major)"
+./gradlew :app:compileDebugKotlin :app:testDebugUnitTest :app:assembleDebug "$@"
 
 RESULTS_DIR="app/build/test-results/testDebugUnitTest"
 if [[ ! -d "$RESULTS_DIR" ]]; then
@@ -47,16 +49,19 @@ failures=0
 errors=0
 tests=0
 for f in "${xml_files[@]}"; do
-  t="$(sed -n 's/.*tests="\([0-9][0-9]*\)".*/\1/p' "$f" | head -1)"
-  fa="$(sed -n 's/.*failures="\([0-9][0-9]*\)".*/\1/p' "$f" | head -1)"
-  er="$(sed -n 's/.*errors="\([0-9][0-9]*\)".*/\1/p' "$f" | head -1)"
-  tests=$((tests + ${t:-0}))
-  failures=$((failures + ${fa:-0}))
-  errors=$((errors + ${er:-0}))
+  line="$(grep -m1 '<testsuite ' "$f")"
+  failures=$((failures + $(sed -n 's/.* failures="\([0-9]*\)".*/\1/p' <<<"$line")))
+  errors=$((errors + $(sed -n 's/.* errors="\([0-9]*\)".*/\1/p' <<<"$line")))
+  tests=$((tests + $(sed -n 's/.* tests="\([0-9]*\)".*/\1/p' <<<"$line")))
 done
 
 if (( failures > 0 || errors > 0 )); then
-  echo "rebuild-app: ERROR — tests=$tests failures=$failures errors=$errors" >&2
+  echo "rebuild-app: ERROR — unit tests failed ($failures failures, $errors errors in $tests tests)" >&2
+  exit 1
+fi
+
+if (( tests == 0 )); then
+  echo "rebuild-app: ERROR — zero tests recorded; testDebugUnitTest may not have executed" >&2
   exit 1
 fi
 
@@ -64,8 +69,9 @@ shopt -s nullglob
 apks=(app/build/outputs/apk/debug/*.apk)
 shopt -u nullglob
 if (( ${#apks[@]} == 0 )); then
-  echo "rebuild-app: ERROR — no debug APK under app/build/outputs/apk/debug/" >&2
+  echo "rebuild-app: ERROR — no APK under app/build/outputs/apk/debug" >&2
   exit 1
 fi
 
-echo "rebuild-app: VERIFY OK — compileDebugKotlin + testDebugUnitTest ($tests tests, 0 failures) + assembleDebug (${apks[0]})"
+apk="${apks[0]}"
+echo "rebuild-app: VERIFY OK — compileDebugKotlin + testDebugUnitTest ($tests tests, 0 failures) + assembleDebug ($apk)"

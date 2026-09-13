@@ -29,9 +29,32 @@ class DayAvailabilityTest {
     }
 
     @Test
-    fun daysAfterInstallUntilTodayAnalyze() {
+    fun daysAfterInstallUntilYesterdayAnalyze() {
         assertEquals(DayAction.ANALYZE, DayAvailability.action(install.plusDays(1), today, install))
-        assertEquals(DayAction.ANALYZE, DayAvailability.action(today, today, install))
+        assertEquals(DayAction.ANALYZE, DayAvailability.action(today.minusDays(1), today, install))
+    }
+
+    @Test
+    fun todayHasNoDataByDefault() {
+        assertEquals(DayAction.NO_DATA, DayAvailability.action(today, today, install))
+        assertEquals(DayAction.NO_DATA, DayAvailability.action(today, today, install, allowToday = false))
+    }
+
+    @Test
+    fun todayAnalyzesOnlyWhenUnlocked() {
+        assertEquals(DayAction.ANALYZE, DayAvailability.action(today, today, install, allowToday = true))
+    }
+
+    @Test
+    fun unlockDoesNotOpenFutureOrInstallDay() {
+        assertEquals(DayAction.NO_DATA, DayAvailability.action(today.plusDays(1), today, install, allowToday = true))
+        assertEquals(DayAction.NO_DATA, DayAvailability.action(install, today, install, allowToday = true))
+    }
+
+    @Test
+    fun unlockAllowsTodayEvenWhenTodayIsInstallDay() {
+        assertEquals(DayAction.NO_DATA, DayAvailability.action(today, today, today))
+        assertEquals(DayAction.ANALYZE, DayAvailability.action(today, today, today, allowToday = true))
     }
 
     @Test

@@ -55,6 +55,7 @@ import com.sleepanalysis.app.DayAvailability
 import com.sleepanalysis.app.DayVisual
 import com.sleepanalysis.app.R
 import com.sleepanalysis.app.SleepPrefs
+import com.sleepanalysis.app.TodayUnlock
 import kotlinx.coroutines.delay
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -81,6 +82,7 @@ fun SleepAnalysisApp() {
     var screen by remember { mutableStateOf<AppScreen>(AppScreen.Calendar) }
     var month by remember { mutableStateOf(YearMonth.from(today)) }
     var showNoData by remember { mutableStateOf(false) }
+    val todayUnlock = remember { TodayUnlock() }
 
     LaunchedEffect(Unit) {
         delay(2_000)
@@ -96,7 +98,10 @@ fun SleepAnalysisApp() {
                 onNextMonth = { month = month.plusMonths(1) },
                 onDayClick = { day ->
                     if (!watchConnected) return@CalendarScreen
-                    when (DayAvailability.action(day, today, installDay)) {
+                    if (day == today && !todayUnlock.registerTodayTap()) {
+                        return@CalendarScreen
+                    }
+                    when (DayAvailability.action(day, today, installDay, todayUnlock.unlocked)) {
                         DayAction.NO_DATA -> showNoData = true
                         DayAction.ANALYZE -> screen = AppScreen.Analyzing(day)
                     }
@@ -355,7 +360,7 @@ private fun AnalyzingPanel(onFinished: () -> Unit) {
 @Composable
 private fun PlaybackPanel(onClose: () -> Unit) {
     val context = LocalContext.current
-    BackHandler(onClose)
+    BackHandler(enabled = true, onBack = onClose)
     DisposableEffect(Unit) {
         val player = MediaPlayer.create(context, R.raw.sleep_recording)
         player?.isLooping = true
